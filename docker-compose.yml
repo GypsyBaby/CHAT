@@ -1,0 +1,32 @@
+version: '1.0'
+
+name: dmitrievs_chat
+
+services:
+  chat_api:
+    build:
+      context: .
+    container_name: dmitriev_chat_api
+    restart: always
+    ports:
+      - 8000:8000
+    networks:
+      - dmitriev-chat-net
+
+  postgresql:
+    image: postgres:16.1
+    restart: always
+    container_name: dmitrievs_chat_postgres
+    environment:
+      POSTGRES_PASSWORD: dmitrievs_chat
+      POSTGRES_DB: dmitrievs_chat
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../data/postgres:/var/lib/postgresql/data
+    networks:
+      - dmitriev-chat-net
+
+networks:
+  dmitriev-chat-net:
+    driver: bridge

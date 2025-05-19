@@ -1,0 +1,16 @@
+version: '1.0'
+
+name: test_dmitrievs_chat
+
+services:
+  postgresql:
+    image: postgres:16.1
+    restart: always
+    container_name: dmitrievs_chat_postgres
+    environment:
+      POSTGRES_PASSWORD: dmitrievs_chat
+      POSTGRES_DB: dmitrievs_chat
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../data/postgres:/var/lib/postgresql/data
