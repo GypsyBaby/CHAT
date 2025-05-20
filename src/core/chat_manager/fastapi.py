@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import datetime
 
 from fastapi import WebSocket
@@ -12,6 +13,8 @@ from src.core.storage import ConnectionStorage
 from src.data.chat_repo.interface import ChatRepositoryInterface
 from src.data.message_repo.interface import MessageRepositoryInterface
 from src.data.user_repo.interface import UserRepositoryInterface
+
+logger = logging.getLogger(__name__)
 
 
 class FastapiChatManager(ChatManagerInterface):
@@ -30,6 +33,7 @@ class FastapiChatManager(ChatManagerInterface):
     async def _wait_until_user_connect_and_send(
         self, message: str, recivier_id: int, chat_id: int, message_id: int
     ) -> None:
+        self._connection_storage.add_fresh_message(message_id, chat_id, recivier_id)
         while True:
             recivier_connection = self._connection_storage.get_connection(chat_id, recivier_id)
             if not recivier_connection:
@@ -38,6 +42,7 @@ class FastapiChatManager(ChatManagerInterface):
 
             await recivier_connection.send_text(message)
             self._connection_storage.remover_fresh_message(message_id, chat_id, recivier_id)
+            logger.info(f"Message with id {message_id} successfully delivered")
             return
 
     async def _send_to_all_members(self, chat_id: int, message: MessageDTO) -> None:
@@ -64,6 +69,7 @@ class FastapiChatManager(ChatManagerInterface):
         self, chat_id: int, user_id: int, connection: WebSocket
     ) -> None:
         try:
+            logger.info(f"User {user_id} connected to chat {chat_id}")
             while True:
                 message = await connection.receive_text()
                 message = f"User {user_id}: {message}"
@@ -79,6 +85,7 @@ class FastapiChatManager(ChatManagerInterface):
 
         except WebSocketDisconnect:
             await self.disconnect_from_chat(chat_id, user_id)
+            logger.info(f"User {user_id} disconnected from chat {chat_id}")
 
     async def create_chat(
         self, chat_name: str, chat_type: ChatType, creator_id: int
@@ -94,18 +101,19 @@ class FastapiChatManager(ChatManagerInterface):
     async def connect_to_chat(
         self, chat_id: int, user_id: int, connection: WebSocket
     ) -> None:
-        await connection.accept()
-
         chat = await self._chat_repository.get_chat(chat_id)
 
         if user_id not in chat.members_ids:
             raise NotMemberError
 
+        await connection.accept()
+
         self._connection_storage.add_user_connection(chat_id, user_id, connection)
+
+        fresh_messages = self._connection_storage.get_fresh_messages(chat_id, user_id)
 
         msg_hist = await self._message_repository.get_message_history(chat_id=chat_id)
 
-        fresh_messages = self._connection_storage.get_fresh_messages(chat_id, user_id)
         for msg in msg_hist.items:
             if msg.id not in fresh_messages:
                 await connection.send_text(msg.text)

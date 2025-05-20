@@ -20,15 +20,15 @@ class ConnectionStorage:
         self, chat_id: int, user_id: int, connection: AsyncConnectionProtocol
     ) -> None:
         self._chats[chat_id]["connections"].update({user_id: connection})
-        self._chats[chat_id]["fresh_message_ids"].update({user_id: set()})
+        if user_id not in self._chats[chat_id]["fresh_message_ids"]:
+            self._chats[chat_id]["fresh_message_ids"].update({user_id: set()})
 
     def remove_user_connection(self, chat_id: int, user_id: int) -> None:
         del self._chats[chat_id]["connections"][user_id]
-        del self._chats[chat_id]["fresh_message_ids"][user_id]
 
     def add_fresh_message(self, message_id: int, chat_id: int, user_id: int) -> None:
         self._chats[chat_id]["fresh_message_ids"][user_id].add(message_id)
-    
+
     def remover_fresh_message(self, message_id: int, chat_id: int, user_id: int) -> None:
         self._chats[chat_id]["fresh_message_ids"][user_id].discard(message_id)
     
