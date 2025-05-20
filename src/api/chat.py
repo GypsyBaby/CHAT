@@ -108,7 +108,7 @@ async def add_user_to_chat(
     )
 
 
-@chat_router.delete("/add_user/{remove_user_id}/{chat_id}")
+@chat_router.post("/add_user/{remove_user_id}/{chat_id}")
 async def remove_user_from_chat(
     remove_user_id: int,
     chat_id: int,
