@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Protocol
+from typing import Protocol, Iterable, Optional
 
 from src.core.schemas.chat import ChatDTO, ChatType
 
@@ -8,6 +8,13 @@ class AsyncConnectionProtocol(Protocol):
     async def send_text(self, data: str) -> None: ...
 
     async def receive_text(self) -> str: ...
+
+    async def accept(
+        self,
+        subprotocol: Optional[str] = None,
+        headers: Optional[Iterable[tuple[bytes, bytes]]] = None,
+    ) -> None:
+        ...
 
 
 class ChatManagerInterface(ABC):
