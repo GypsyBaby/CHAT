@@ -53,7 +53,7 @@ async def create_chat(
             user_id,
         )
     except UserNotFound:
-        raise HTTPException(status_code=409, detail=f"User with id {user_id} not found")
+        raise HTTPException(status_code=404, detail=f"User with id {user_id} not found")
 
     logger.info(f"Chat with id {chat_dto.id} successfully created!")
 
