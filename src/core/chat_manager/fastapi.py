@@ -28,22 +28,22 @@ class FastapiChatManager(ChatManagerInterface):
         self._user_repository = user_repository
 
     async def _wait_until_user_connect_and_send(
-        self, message: str, recivier_id: int, chat_id: int
+        self, message: str, recivier_id: int, chat_id: int, message_id: int
     ) -> None:
         while True:
-            active_connections = self._connection_storage.get_chat(chat_id)
-            recivier_connection = active_connections.get(recivier_id)
+            recivier_connection = self._connection_storage.get_connection(chat_id, recivier_id)
             if not recivier_connection:
                 await asyncio.sleep(3)
                 continue
 
             await recivier_connection.send_text(message)
+            self._connection_storage.remover_fresh_message(message_id, chat_id, recivier_id)
             return
 
     async def _send_to_all_members(self, chat_id: int, message: MessageDTO) -> None:
         chat = await self._chat_repository.get_chat(chat_id)
         tasks = [
-            self._wait_until_user_connect_and_send(message.text, member_id, chat_id)
+            self._wait_until_user_connect_and_send(message.text, member_id, chat_id, message.id)
             for member_id in chat.members_ids
         ]
 
@@ -56,6 +56,7 @@ class FastapiChatManager(ChatManagerInterface):
                 message=f"{message.text}: Message was read by all chat participants.",
                 recivier_id=message.sender_id,
                 chat_id=chat_id,
+                message_id=message.id,
             )
         )
 
@@ -65,6 +66,7 @@ class FastapiChatManager(ChatManagerInterface):
         try:
             while True:
                 message = await connection.receive_text()
+                message = f"User {user_id}: {message}"
                 message_dto = await self._message_repository.save_message(
                     dto=MessageCreateDTO(
                         chat_id=chat_id,
@@ -100,6 +102,13 @@ class FastapiChatManager(ChatManagerInterface):
             raise NotMemberError
 
         self._connection_storage.add_user_connection(chat_id, user_id, connection)
+
+        msg_hist = await self._message_repository.get_message_history(chat_id=chat_id)
+
+        fresh_messages = self._connection_storage.get_fresh_messages(chat_id, user_id)
+        for msg in msg_hist.items:
+            if msg.id not in fresh_messages:
+                await connection.send_text(msg.text)
 
         await self._chat_processing(chat_id, user_id, connection)
 
