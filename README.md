@@ -12,8 +12,10 @@
 
 3. Для переопределения стандартных настроек необохидимо в корне проекта создать файл расширения .env с названием ландшафта (local, dev, test, prod) и выставить в контейнере переменную окружения DMITRIEV_CHAT_ENV с соотвестующим значением. По умолчанию - local
 
-4. Для запуска тестов - `docker compose -f test-docker-compose.yml up -d` && `pytest`
+4. Тесты
 
+4.1 Создайте в корне проекта файл local.env и переопределите в нём DB_HOST = localhost
+4.2 Для запуска тестов - `docker compose -f test-docker-compose.yml up -d` && `pytest`
 
 ## Запросы
 
